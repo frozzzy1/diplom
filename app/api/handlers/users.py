@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-from app.api.schemas.users import LoginUserSchema, RegisterUserSchema
+from app.api.schemas.users import LoginUserSchema, ReadUserSchema, RegisterUserSchema
 from app.database.database import get_session
 from app.middlewares.users import UserMiddleware
 from app.api.exceptions.exceptions import (
@@ -9,13 +9,32 @@ from app.api.exceptions.exceptions import (
     PasswordsDoNotMatchException,
     IncorrectLoginOrPasswordException,
 )
-from app.utils.auth import create_access_token
+from app.utils.auth import create_access_token, get_token
+from app.core.config import settings
+from jose import jwt, JWTError
 
 
 router = APIRouter(
     prefix='/user',
     tags=['Auth & Users']
 )
+
+
+async def get_current_user(token: str = Depends(get_token), session: AsyncSession = Depends(get_session)):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGO])
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Токен не валидный!')
+    user_id = payload.get('sub')
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Не найден ID пользователя')
+    
+    user_mw = UserMiddleware(session)
+    user = await user_mw.find_one_or_none_by_id(int(user_id))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not found')
+
+    return user
 
 
 @router.post('/register')
@@ -58,8 +77,21 @@ async def login_user(
     return {'access_token': access_token}
 
 
+@router.post('/logout')
+async def logout_user(
+    response: Response,
+):
+    response.delete_cookie('access_token', httponly=True)
+    return {'response': 'Logged out'}
+
+
 @router.get('/all')
 async def get_all_users(session: AsyncSession = Depends(get_session)):
     user_mw = UserMiddleware(session)
     users = await user_mw.find_all()
     return {'users': users}
+
+
+@router.get('/me')
+async def get_me(user: ReadUserSchema = Depends(get_current_user)):
+    return {'user': user}

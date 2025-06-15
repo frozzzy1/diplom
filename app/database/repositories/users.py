@@ -24,6 +24,13 @@ class UserRepository(AbsRepo):
         if result:
             return ReadUserSchema.model_validate(result)
         return
+    
+    async def find_one_or_none_by_id(self, id: int) -> ReadUserSchema | None:
+        query = select(UserOrm).filter(UserOrm.id == id)
+        result = await self.session.scalar(query)
+        if result:
+            return ReadUserSchema.model_validate(result)
+        return
 
     async def find_all(self) -> list[ReadUserSchema]:
         query = select(UserOrm)

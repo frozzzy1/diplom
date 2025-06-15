@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from app.database.database import create_tables, delete_tables
 from app.api.handlers.users import router as user_router
+from app.api.handlers.equipments import router as equipments_router
+from app.api.handlers.orders import router as orders_router
 
 
 @asynccontextmanager
@@ -29,5 +31,7 @@ app = FastAPI(
 app.include_router(
     setup_handlers(
         user_router,
+        equipments_router,
+        orders_router,
     )
 )

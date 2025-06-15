@@ -23,3 +23,9 @@ class IncorrectLoginOrPasswordException(CustomException):
 
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = 'Incorrect login or password'
+
+
+class EquipmentAlreadyExistsException(CustomException):
+
+    status_code = status.HTTP_409_CONFLICT
+    detail = 'Equipment already exists'

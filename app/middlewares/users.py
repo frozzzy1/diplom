@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.api.schemas.response import ResponseSchema
-from app.api.schemas.users import AddUserSchema, LoginUserSchema, RegisterUserSchema
+from app.api.schemas.users import AddUserSchema, LoginUserSchema, ReadUserSchema, RegisterUserSchema
 from app.database.repositories.users import UserRepository
 from app.api.exceptions.exceptions import (
     PasswordsDoNotMatchException,
@@ -34,9 +34,12 @@ class UserMiddleware:
             data={'user': user.model_dump(exclude=['hashed_password'])}
         )
     
-    async def find_all(self) -> dict:
+    async def find_all(self) -> list[ReadUserSchema]:
         users = await self.user_repository.find_all()
         return users
+    
+    async def find_one_or_none_by_id(self, id: int) -> ReadUserSchema:
+        return await self.user_repository.find_one_or_none_by_id(id)
     
     async def is_authenticate_user(self, u: LoginUserSchema) -> str:
         user = await self.user_repository.find_one_or_none(u)

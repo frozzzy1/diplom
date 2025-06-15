@@ -1,10 +1,10 @@
+from fastapi import Request, HTTPException, status
 from datetime import UTC, datetime, timedelta
 
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from app.core.config import settings
-# from app.middlewares.users import UserMiddleware
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,3 +27,9 @@ def create_access_token(data: dict[str, str]) -> str:
         settings.ALGO,
     )
     return encoded_jwt
+
+def get_token(request: Request):
+    token = request.cookies.get('access_token')
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User is not authorized')
+    return token
